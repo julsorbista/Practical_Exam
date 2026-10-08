@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react';
 import './App.css'
-import axios from "axios";
+
+async function requestStudents(path = "", options = {}) {
+  const response = await fetch(`/api/students${path}`, options);
+  if (!response.ok) {
+    throw new Error("Unable to complete the request. Please try again.");
+  }
+  return response.json();
+}
+
+function studentBody(method, student) {
+  return {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(student),
+  };
+}
 
 function App() {
   const [name, setName] = useState("");
@@ -11,10 +26,9 @@ function App() {
   const [students, setStudents] = useState([]);
 
   function getStudents() {
-    axios.get("http://localhost:5001/students")
-    .then((response) => {
-      setStudents(response.data);
-    });
+    requestStudents()
+    .then(setStudents)
+    .catch((error) => setError(error.message));
   }
   useEffect(() => {
     getStudents();
@@ -50,17 +64,19 @@ function App() {
     }
     setError("");
     if (editingId == null) {
-      axios.post("http://localhost:5001/students", { name, course, age })
+      requestStudents("", studentBody("POST", { name, course, age }))
         .then(() => {
           clearForm();
           getStudents();
-        });
+        })
+        .catch((error) => setError(error.message));
     } else {
-      axios.put("http://localhost:5001/students/" + editingId, { name, course, age })
+      requestStudents("/" + editingId, studentBody("PUT", { name, course, age }))
         .then(() => {
           clearForm();
           getStudents();
-        });
+        })
+        .catch((error) => setError(error.message));
     }
   }
   function editStudent(student) {
@@ -70,10 +86,11 @@ function App() {
     setAge(student.age);
   }
   function deleteStudent(id) {
-    axios.delete("http://localhost:5001/students/" + id)
+    requestStudents("/" + id, { method: "DELETE" })
       .then(() => {
         getStudents();
-      });
+      })
+      .catch((error) => setError(error.message));
   }
   return (
   <div>
